@@ -17,7 +17,7 @@ import java.util.List;
 
 
 @Component
-@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
+//@Scope(ConfigurableBeanFactory.SCOPE_PROTOTYPE)
 public class ConvertVideo {
     //源视频地址
     private static final String rootInputPath = "D:\\idea\\mp4\\mp4_tmp\\";
@@ -28,10 +28,12 @@ public class ConvertVideo {
     //所在位置(本地配置)
     private static final String ffmpegPath = "D:\\idea\\projects\\mpl\\src\\main\\resources\\static\\ffmpeg.exe";
 
-
     // ffmpeg能解析的格式：（asx，asf，mpg，wmv，3gp，mp4，mov，avi，flv等）
-//    @Async
-    public boolean AllToMp4(String upFilePath) {
+    @Async
+    public boolean AllToMp4(String upFilePath, String name) {
+        if (!checkContentType(upFilePath)) {
+            return false;
+        }
         // 创建一个List集合来保存转换视频文件为flv格式的命令
         List<String> convert = new ArrayList<String>();
         convert.add(ffmpegPath); // 添加转换工具路径
@@ -49,13 +51,13 @@ public class ConvertVideo {
         convert.add("-r");        //设置帧频
         convert.add("24");
         convert.add("-y"); // 添加参数＂-y＂，该参数指定将覆盖已存在的文件
-        convert.add(rootOutputPath);
+        convert.add(rootOutputPath + name + ".mp4");
         boolean mark = true;
         ProcessBuilder builder = new ProcessBuilder();
         try {
 
             builder.command(convert);
-            builder.redirectErrorStream(true);
+//            builder.redirectErrorStream(true);
             builder.start();
 
         } catch (Exception e) {
@@ -69,7 +71,6 @@ public class ConvertVideo {
     public boolean checkContentType(String upFilePath) {
         //取得视频后缀-
         String type = upFilePath.substring(upFilePath.lastIndexOf(".") + 1, upFilePath.length()).toLowerCase();
-//        String type = upFilePath.split(".")[1].toLowerCase();
         System.out.println("源视频类型为:" + type);
         // 如果是ffmpeg能解析的格式:(asx，asf，mpg，wmv，3gp，mp4，mov，avi，flv等)
         if (type.equals("avi")) {
@@ -106,7 +107,7 @@ public class ConvertVideo {
         return false;
     }
 
-    public boolean screenImage(String upFilePath) {
+    public boolean screenImage(String upFilePath, String name) {
         // 创建一个List集合来保存从视频中截取图片的命令
         List<String> cutpic = new ArrayList<String>();
         cutpic.add(ffmpegPath);
@@ -121,7 +122,7 @@ public class ConvertVideo {
         cutpic.add("0.001"); // 添加持续时间为1毫秒
         cutpic.add("-s"); // 添加参数＂-s＂，该参数指定截取的图片大小
         cutpic.add(350 + "*" + 240); // 添加截取的图片大小为350*240
-        cutpic.add(rootOutputImgPath); // 添加截取的图片的保存路径
+        cutpic.add(rootOutputImgPath + name + ".jpg"); // 添加截取的图片的保存路径
         ProcessBuilder builder = new ProcessBuilder();
         try {
             builder.command(cutpic);
@@ -136,7 +137,8 @@ public class ConvertVideo {
 
     public static void main(String[] args) {
         ConvertVideo video = new ConvertVideo();
-        video.AllToMp4("G:\\学习资料\\github教程\\two.wmv");
+//        video.AllToMp4("G:\\学习资料\\github教程\\two.wmv", "two");
+        video.screenImage("G:\\学习资料\\github教程\\two.wmv", "two");
     }
 
 
