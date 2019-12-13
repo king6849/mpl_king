@@ -1,29 +1,33 @@
 package com.king.mpl.Service;
 
+import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.king.mpl.Config.RestTemplateConfig;
-import com.king.mpl.Entity.User;
-import com.king.mpl.Mepper.ClientUserMepper;
-import com.king.mpl.Utils.MyToken;
+import com.king.mpl.Mapper.ClientUserMapper;
+import com.king.mpl.Utils.JwtUtils;
 import com.king.mpl.Utils.ResultVO;
 import net.sf.json.JSONObject;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class ClientUserService {
     @Autowired
     private RestTemplateConfig restTemplateConfig;
     @Autowired
-    private MyToken authorization;
+    private JwtUtils jwtUtils;
     @Autowired
-    private ClientUserMepper clientUserMepper;
+    private ClientUserMapper clientUserMapper;
 
+    /**
+     * 小程序端登录
+     * @param code 微信小程序端随机生成的code
+     * @return authorization
+     * @throws RuntimeException 运行时错误
+     */
     @Transactional
     public ResultVO login(String code) throws RuntimeException {
-
         String url = "https://api.weixin.qq.com/sns/jscode2session";
         String appid = "wx069b7dc66afc066d";
         String secret = "4b80b43c0ea1e3ede324f7f57df22dd6";
@@ -35,32 +39,29 @@ public class ClientUserService {
         String session_key = jsonObject.getString("session_key");
         System.out.println("session_key" + session_key);
         String openid = jsonObject.getString("openid");
-        //生成token
-        String authorization1 = authorization.getCustomerToken(openid, session_key);
-        String tmp = clientUserMepper.isExitOpenId(openid);
+        //生成authorization
+        String authorization = jwtUtils.getClientAuthorization(openid, session_key);
+        String tmp = clientUserMapper.isExitOpenid(openid);
         if (tmp == null) {
-            clientUserMepper.insertOpenId(openid);
+            clientUserMapper.insertOpenid(openid);
         }
         //返回结果
-        return ResultVO.getSuccessWithAuthorization("登陆成功", authorization1);
+        return ResultVO.getSuccessWithAuthorization("登陆成功", authorization);
     }
 
-    public ResultVO uploadFile(MultipartFile file[], String savePath) {
-        int len = file.length;
-        for (int i = 0; i < len; i++) {
-            MultipartFile f = file[i];
-            String fileName = f.getOriginalFilename();
-            System.out.println(fileName);
-        }
-        return ResultVO.getSuccess("上传成功");
-    }
-
+    /**
+     * 更新微信小程序端的信息
+     * @param avatar 头像链接
+     * @param nickname 昵称
+     * @param authorization token
+     * @return 更新结果
+     */
     @Transactional
-    public ResultVO info(String avatar, String nickname, String token) {
-        DecodedJWT jwt = authorization.parseToken(token);
+    public ResultVO info(String avatar, String nickname, String authorization) {
+        DecodedJWT jwt = JWT.decode(authorization);
         String openid = jwt.getClaim("openid").asString();
-        if (clientUserMepper.isExitOpenId(openid) != null) {
-            clientUserMepper.updateInfo(avatar, nickname, openid);
+        if (clientUserMapper.isExitOpenid(openid) != null) {
+            clientUserMapper.updateInfo(avatar, nickname, openid);
             return ResultVO.getSuccess("更新成功");
         }
         return ResultVO.getFailed("信息有误");
